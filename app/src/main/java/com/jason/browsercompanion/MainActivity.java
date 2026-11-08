@@ -206,7 +206,7 @@ public class MainActivity extends Activity {
     private void confirmClearData() {
         new AlertDialog.Builder(this).setTitle("Clear browsing data?").setMessage("This clears cookies, site storage, cache, and saved bookmarks on this phone. You may be signed out of websites.").setNegativeButton("Cancel", null).setPositiveButton("Clear", (d, w) -> {
             CookieManager.getInstance().removeAllCookies(null); CookieManager.getInstance().flush();
-            WebView.clearClientCertPreferences(); WebView web = current();
+            WebView.clearClientCertPreferences(null); WebView web = current();
             if (web != null) { web.clearCache(true); web.clearFormData(); web.clearHistory(); web.clearSslPreferences(); }
             getPreferences(MODE_PRIVATE).edit().clear().apply(); toast("Browsing data cleared");
         }).show();
