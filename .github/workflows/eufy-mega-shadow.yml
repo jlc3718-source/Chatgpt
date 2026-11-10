@@ -25,6 +25,10 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Check syntax and read-only guards
         run: npm run check && npm test
+      - name: Validate isolated install and rollback shell syntax
+        run: |
+          bash -n install-oracle-shadow.sh rollback-oracle-shadow.sh
+          ! grep -Eq 'systemctl.*(jason-home-2|jh2-web)' install-oracle-shadow.sh rollback-oracle-shadow.sh
       - name: Verify SDK exports
         run: node --input-type=module -e "import {EufyMega,FileSessionStore,LoginStatus} from '@mega-yfue/eufy-sdk'; if(!EufyMega || !FileSessionStore || !LoginStatus) process.exit(1); console.log('SDK exports verified');"
       - name: Smoke-test disabled-by-default loopback service
