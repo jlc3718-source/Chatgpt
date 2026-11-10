@@ -21,8 +21,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24.5.0'
-          cache: npm
-          cache-dependency-path: experiments/eufy-mega-shadow/package-lock.json
       - name: Install pinned SDK in isolated directory
         run: npm install --no-audit --no-fund
       - name: Check syntax and read-only guards
