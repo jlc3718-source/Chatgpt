@@ -106,20 +106,30 @@ async function answerChallenge(type, answer) {
 async function devices() {
   if (state !== 'connected' || !client) return { code: 409, body: { error: 'Shadow SDK is not connected' } };
   const inventory = await client.getDevices();
-  const lights = [];
+  const lights = [], unresolved = [];
   for (const d of inventory) {
-    const instance = await client.getDevice(d.sn);
-    const light = instance.smartLight?.();
-    if (!light) continue;
-    lights.push({ name: d.name || null, model: d.model || null,
-      capabilities: instance.capabilities || [],
+    // Device.info() exposes safe local metadata; serial numbers are never returned or logged.
+    const info = d?.info?.() || {};
+    const model = String(info.model || d?.model || '');
+    if (!/^T8L/i.test(model) && !d?.smartLight) continue;
+    const sn = info.serialNumber || d?.sn;
+    let instance = d;
+    if (!instance?.smartLight && typeof sn === 'string' && sn.length) {
+      try { instance = await client.getDevice(sn); } catch { unresolved.push(model || 'unknown'); continue; }
+    }
+    const light = instance?.smartLight?.();
+    if (!light) { unresolved.push(model || 'unknown'); continue; }
+    const boundInfo=instance?.info?.() || info;
+    lights.push({ model: boundInfo.model || model || null,
+      capabilities: Array.isArray(instance.capabilities) ? instance.capabilities.filter(v=>typeof v==='string').slice(0,20) : [],
       power: light.power ?? null, brightness: light.brightness ?? null,
       effectId: light.effectId ?? null, cloudEffectId: light.cloudEffectId ?? null,
-      // No device SN or account identifiers in the API response.
+      // No device SN, email, token, account identifiers or network addresses in API response.
       canSetEffect: typeof light.setEffect === 'function',
       canSetColor: typeof light.setColor === 'function' });
   }
-  return { code: 200, body: { ok: true, mode: 'read-only', count: lights.length, lights } };
+  return { code: 200, body: { ok: true, mode: 'read-only', count: lights.length, lights,
+    unboundLightModels: unresolved, reportedTotalDevices: inventory.length } };
 }
 const server = createServer(async (req, res) => {
   try {
