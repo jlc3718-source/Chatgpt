@@ -1,0 +1,46 @@
+name: JH2 Eufy Mega SDK shadow smoke test
+on:
+  push:
+    branches:
+      - experiment/eufy-mega-sdk-2026-11-09
+    paths:
+      - 'experiments/eufy-mega-shadow/**'
+      - '.github/workflows/eufy-mega-shadow.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  sdk-shadow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    defaults:
+      run:
+        working-directory: experiments/eufy-mega-shadow
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.5.0'
+          cache: npm
+          cache-dependency-path: experiments/eufy-mega-shadow/package-lock.json
+      - name: Install pinned SDK in isolated directory
+        run: npm install --no-audit --no-fund
+      - name: Check syntax and read-only guards
+        run: npm run check && npm test
+      - name: Verify SDK exports
+        run: node --input-type=module -e "import {EufyMega,FileSessionStore,LoginStatus} from '@mega-yfue/eufy-sdk'; if(!EufyMega || !FileSessionStore || !LoginStatus) process.exit(1); console.log('SDK exports verified');"
+      - name: Smoke-test disabled-by-default loopback service
+        env:
+          JH2_MEGA_ALLOW_LOGIN: '0'
+        run: |
+          node shadow.mjs > shadow.log 2>&1 &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true' EXIT
+          for i in $(seq 1 30); do
+            if curl --silent --fail http://127.0.0.1:48721/health > health.json; then break; fi
+            sleep 1
+          done
+          node --input-type=module -e "import fs from 'node:fs';let x=JSON.parse(fs.readFileSync('health.json'));if(x.loginAllowed!==false||x.writesEnabled!==false||x.mode!=='shadow-read-only')process.exit(1);console.log('Disabled-by-default health verified')"
+          status=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:48721/v1/devices)
+          test "$status" = 401
+          echo 'Read-only shadow smoke test passed. No Eufy login attempted.'
