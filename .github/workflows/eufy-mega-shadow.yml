@@ -27,8 +27,12 @@ jobs:
         run: npm run check && npm test
       - name: Validate isolated install and rollback shell syntax
         run: |
-          bash -n install-oracle-shadow.sh rollback-oracle-shadow.sh
-          ! grep -Eq 'systemctl.*(jason-home-2|jh2-web)' install-oracle-shadow.sh rollback-oracle-shadow.sh
+          bash -n install-oracle-shadow.sh rollback-oracle-shadow.sh make-permanent.sh
+          ! grep -Eq 'systemctl.*(jason-home-2|jh2-web)' install-oracle-shadow.sh rollback-oracle-shadow.sh make-permanent.sh
+          grep -Fq 'sudo loginctl enable-linger' make-permanent.sh
+          grep -Fq 'systemctl --user is-enabled --quiet' make-permanent.sh
+          grep -Fq 'd.writesEnabled!==false' make-permanent.sh
+          ! grep -Eq '(setBrightness|setEffect|setColor|\.on\(|\.off\(|/v1/login)' make-permanent.sh
       - name: Verify SDK exports
         run: node --input-type=module -e "import {EufyMega,FileSessionStore,LoginStatus} from '@mega-yfue/eufy-sdk'; if(!EufyMega || !FileSessionStore || !LoginStatus) process.exit(1); console.log('SDK exports verified');"
       - name: Smoke-test disabled-by-default loopback service
