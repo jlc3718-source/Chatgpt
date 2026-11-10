@@ -1,0 +1,30 @@
+name: Eufy Mega SDK Shadow Lab — safe CI
+on:
+  push:
+    branches:
+      - experiment/eufy-mega-sdk-2026-11-09
+    paths:
+      - "experiments/eufy-mega-shadow/**"
+      - ".github/workflows/eufy-mega-shadow-smoke.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  sdk-read-only-validation:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: experiments/eufy-mega-shadow
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: experiments/eufy-mega-shadow/package.json
+      - name: Install pinned stable SDK (no credentials)
+        run: npm install --omit=dev --no-audit --no-fund
+      - name: Syntax check
+        run: npm run check
+      - name: Guardrails (no light commands, login disabled)
+        run: npm test
