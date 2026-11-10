@@ -124,7 +124,7 @@ async function devices() {
       capabilities: Array.isArray(instance.capabilities) ? instance.capabilities.filter(v=>typeof v==='string').slice(0,20) : [],
       power: light.power ?? null, brightness: light.brightness ?? null,
       effectId: light.effectId ?? null, cloudEffectId: light.cloudEffectId ?? null,
-      // No device SN, email, token, account identifiers or network addresses in API response.
+      // No device SN or account identifiers in the API response; no email, tokens, or network addresses.
       canSetEffect: typeof light.setEffect === 'function',
       canSetColor: typeof light.setColor === 'function' });
   }
